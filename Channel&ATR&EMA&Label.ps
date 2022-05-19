@@ -1,0 +1,66 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © liruizhao54
+
+//@version=5
+indicator(title="[RS]通道指标", shorttitle="Channel indicators", overlay=true)
+// *****************************************************************************
+// | Basic
+// *****************************************************************************
+length                      =               input.int(title="Length", defval=20, minval=1)
+showATRChannel              =               input.bool(title="显示ATR通道", defval=false)
+showBLChannel               =               input.bool(title="显示布林带通道", defval=false)
+ema_short_length            =               input.int(title="短周期EMA长度", defval=21)
+ema_middle_length           =               input.int(title="中周期EMA长度", defval=50)
+ema_long_length             =               input.int(title="中周期EMA长度", defval=200)
+atr_length                  =               input.int(title="ATR周期长度", defval=19)
+// DISTANCE SETTING | CALCULATE DISTANCE BETWEEN PLOT AND LABEL THEN REPRINT AT EVERY TICK
+distance                    = input(3, "Label Distance")
+r1_x                        = time + math.round(ta.change(time) * distance)
+
+// *****************************************************************************
+// | EMA均线
+// *****************************************************************************
+ema_short                   =               ta.ema(close, ema_short_length)
+ema_middle                  =               ta.ema(close, ema_middle_length)
+ema_100                     =               ta.ema(close, 100)
+ema_long                    =               ta.ema(close, ema_long_length)
+ema_short_plot              =               plot(ema_short, color=color.purple, title="短周期EMA", linewidth=2)
+plot(ema_middle, color=color.black, title="EMA50", linewidth=1)
+plot(ema_100, color=color.black, title="EMA100", linewidth=2)
+plot(ema_long, color=color.black, title="EMA200", linewidth=3)
+
+disEMALabel(label_txt, label_y) =>
+    emalabel = label.new(x=r1_x, y=label_y, text=label_txt, xloc=xloc.bar_time, yloc=yloc.price, style=label.style_none, textcolor=color.black, size=size.tiny)
+    label.delete(emalabel[1])
+
+disEMALabel("EMA 20", ema_short)
+disEMALabel("EMA 50", ema_middle)
+disEMALabel("EMA 100", ema_100)
+disEMALabel("EMA 200", ema_long)
+
+// *****************************************************************************
+// | ATR部分
+// *****************************************************************************		
+atr                         =               ta.atr(atr_length)
+timeATR                     =               atr * 2
+
+// *****************************************************************************
+// | 凯特勒通道(基于ATR实现)
+// *****************************************************************************
+c_up                        =               ema_short + timeATR
+c_down                      =               ema_short - timeATR
+atr_uper                    =               plot(c_up, title="凯特勒通道上边界", color=showATRChannel ? color.black : na, linewidth= showATRChannel ? 1 :na)
+atr_dner                    =               plot(c_down, title="凯特勒通道下边界", color=showATRChannel ? color.black : na, linewidth= showATRChannel ? 1 : na)
+fill(atr_uper, atr_dner, title="凯特勒通道", color= showATRChannel ? color.new(color.red, transp=80) : na)
+
+// *****************************************************************************
+// | 布林带
+// *****************************************************************************
+long_boll_mult              =               input.float(title="布林带偏差", defval=2)
+boll_mid                    =               ta.sma(close, ema_short_length)
+long_dev                    =               long_boll_mult * ta.stdev(close, length)
+l_upper                     =               boll_mid + long_dev
+l_lower                     =               boll_mid - long_dev
+l_b_p1                      =               plot(l_upper, "BL Upper", color=showBLChannel ? color.new(color.black, transp = 50) : na, linewidth= showBLChannel ? 1 : na)
+l_b_p2                      =               plot(l_lower, "BL Lower", color=showBLChannel ? color.new(color.black, transp = 50) : na, linewidth= showBLChannel ? 1 : na)
+fill(l_b_p1, l_b_p2, title="BL通道", color=showBLChannel ? color.new(color.gray, transp = 90) : na)
