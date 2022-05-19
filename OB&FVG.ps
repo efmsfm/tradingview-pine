@@ -1,0 +1,242 @@
+//@version=5
+//This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+indicator('Super OrderBlock / FVG / BoS Tools by makuchaku & eFe', overlay=true, max_boxes_count=500, max_lines_count=500)
+
+plotOB = input.bool(defval=true, title='Plot OB', group='Order Blocks', inline='OB sets')
+plotTextOB = input.bool(defval=true, title='Plot Text inside OB', group='Order Blocks', inline='OB sets')
+plotPPDD = input.bool(defval=true, title='Plot PPDD OB', group='Order Blocks', tooltip='Premium Premium Discount Discount (PPDD) is when OB is formed after interacting with liquidity. It will show up with a triangle. Also with an x-cross will mark PPDD1 which is a  weak OB that fails to completely engulf the high/low, but closes beyond the trapped candles open price.')
+obBullColor = input.color(defval=color.green, title='Bullish OB Color', inline='Set Custom Color', group='Order Blocks')
+obBearColor = input.color(defval=color.red, title='Bearish OB Color', inline='Set Custom Color', group='Order Blocks')
+obBoxBorder = input.string(defval=line.style_solid, title='Set OB Box Border Style', options=[line.style_dashed, line.style_dotted, line.style_solid], group='Order Blocks', tooltip='To disable border, set Border Width below to 0')
+obTransparency = input.int(defval=90, title='Set OB Box Transparency', minval=1, maxval=100, group='Order Blocks')
+obBorderTransparency = input.int(defval=80, title='Set OB Border Box Transparency', minval=1, maxval=100, group='Order Blocks')
+obMaxBoxSet = input.int(defval=10, title='Set Maximum OB Box Displayed', minval=1, maxval=100, group='Order Blocks', tooltip='Minimum = 1, Maximum = 100')
+
+plotFVG = input.bool(defval=true, title='Plot FVG', group='Fair Value Gaps', inline='FVG sets')
+plotTextFVG = input.bool(defval=true, title='Plot Text inside FVG', group='Fair Value Gaps', inline='FVG sets')
+fvgBullColor = input.color(defval=color.black, title='Bullish FVG Color', inline='Set Custom Color', group='Fair Value Gaps')
+fvgBearColor = input.color(defval=color.black, title='Bearish FVG Color', inline='Set Custom Color', group='Fair Value Gaps')
+fvgBoxBorder = input.string(defval=line.style_solid, title='Set FVG Box Border Style', options=[line.style_dashed, line.style_dotted, line.style_solid], group='Fair Value Gaps', tooltip='To disable border, set Border Width below to 0')
+fvgTransparency = input.int(defval=90, title='Set FVG Box Transparency', minval=1, maxval=100, group='Fair Value Gaps')
+fvgBorderTransparency = input.int(defval=80, title='Set FVG Border Box Transparency', minval=1, maxval=100, group='Fair Value Gaps')
+fvgMaxBoxSet = input.int(defval=10, title='Set Maximum FVG Box Displayed', minval=1, maxval=100, group='Fair Value Gaps', tooltip='Minimum = 1, Maximum = 100')
+
+plotRJB = input.bool(defval=false, title='Plot RJB', group='Rejection Blocks', inline='RJB sets')
+plotTextRJB = input.bool(defval=true, title='Plot Text inside RJB', group='Rejection Blocks', inline='RJB sets')
+rjbBullColor = input.color(defval=color.green, title='Bullish RJB Color', inline='Set Custom Color', group='Rejection Blocks')
+rjbBearColor = input.color(defval=color.red, title='Bearish RJB Color', inline='Set Custom Color', group='Rejection Blocks')
+rjbBoxBorder = input.string(defval=line.style_solid, title='Set RJB Box Border Style', options=[line.style_dashed, line.style_dotted, line.style_solid], group='Rejection Blocks', tooltip='To disable border, set Border Width below to 0')
+rjbTransparency = input.int(defval=90, title='Set RJB Box Transparency', minval=1, maxval=100, group='Rejection Blocks')
+rjbBorderTransparency = input.int(defval=80, title='Set RJB Border Box Transparency', minval=1, maxval=100, group='Rejection Blocks')
+rjbMaxBoxSet = input.int(defval=10, title='Set Maximum RJB Box Displayed', minval=1, maxval=100, group='Rejection Blocks', tooltip='Minimum = 1, Maximum = 100')
+
+plotPVT = input.bool(defval=true, title='Plot Pivots', group='Pivots')
+pivotLookup  = input.int(defval=1, minval=1, maxval=5,title='Pivot Lookup', group='Pivots', tooltip='Minimum = 1, Maximum = 5')
+
+plotBOS = input.bool(defval=false, title='Plot BoS', group='Crossovers', inline='BOS sets')
+plotTextBOS = input.bool(defval=true, title='Plot Text inside BoS', group='Crossovers', inline='BOS sets')
+bosBoxFlag  = input.bool(title='Set BoS Box Length Manually', defval=false, group='Crossovers', tooltip='If activated the BoS Boxes will not extend unitl crossed by price. Instead will extend by the amount of bars choosen in the "Set BoS Box Length Manually" option')
+bosBoxLength  = input.int(title='Set BoS Box Length Manually', defval=3, minval=1, maxval=5, group='Crossovers', inline='BoS Boxes', tooltip='If "Set BoS Box Length Manually" is marked, choose by how many bars. Minimum = 1, Maximum = 5')
+bosBullColor = input.color(defval=color.green, title='Bullish BoS Color', inline='Set Custom Color', group='Crossovers')
+bosBearColor = input.color(defval=color.red, title='Bearish BoS Color', inline='Set Custom Color', group='Crossovers')
+bosBoxBorder = input.string(defval=line.style_solid, title='Set BoS Box Border Style', options=[line.style_dashed, line.style_dotted, line.style_solid], group='Crossovers', tooltip='To disable border, set Border Width below to 0')
+bosTransparency = input.int(defval=90, title='Set BoS Box Transparency', minval=1, maxval=100, group='Crossovers')
+bosBorderTransparency = input.int(defval=80, title='Set BoS Border Box Transparency', minval=1, maxval=100, group='Crossovers')
+bosMaxBoxSet = input.int(defval=10, title='Set Maximum BoS Box Displayed', minval=1, maxval=100, group='Crossovers', tooltip='Minimum = 1, Maximum = 100')
+
+plotHVB = input.bool(defval=true, title='Plot HVB', group='High Volume Bar', tooltip='A candle where the average volume is higher than last few bars.')
+hvbBullColor = input.color(defval=color.green, title='Bullish HVB Color', inline='Set Custom Color', group='High Volume Bar')
+hvbBearColor = input.color(defval=color.red, title='Bearish HVB Color', inline='Set Custom Color', group='High Volume Bar')
+hvbEMAPeriod = input.int(defval=12, minval=1, title='Volume EMA Period', group='High Volume Bar')
+hvbMultiplier = input.float(defval=1.5, title='Volume Multiplier', minval=1, maxval=100, group='High Volume Bar')
+
+//Box Types
+var int _ob  = 1
+var int _fvg = 2
+var int _rjb = 3
+var int _bos = 4
+
+//Box Labels
+var string _obLabel  = "OB"
+var string _fvgLabel = "FVG"
+var string _rjbLabel = "RJB"
+var string _bosLabel = "BoS"
+var string _empty    = ""
+
+//Box Arrays
+var box[] _bearBoxesOB  = array.new_box()
+var box[] _bullBoxesOB  = array.new_box()
+var box[] _bearBoxesFVG = array.new_box()
+var box[] _bullBoxesFVG = array.new_box()
+var box[] _bearBoxesRJB = array.new_box()
+var box[] _bullBoxesRJB = array.new_box()
+var box[] _bearBoxesBOS = array.new_box()
+var box[] _bullBoxesBOS = array.new_box()
+
+//Functions
+isUp(index) =>
+    close[index] > open[index]
+
+isDown(index) =>
+    close[index] < open[index]
+
+isObUp(index) =>
+    isDown(index + 1) and isUp(index) and close[index] > high[index + 1]
+
+isObDown(index) =>
+    isUp(index + 1) and isDown(index) and close[index] < low[index + 1]
+
+isFvgUp(index) =>
+    (low[index] > high[index + 2])
+
+isFvgDown(index) =>
+    (high[index] < low[index + 2])
+
+//Function to Calculte Box Length
+_controlBox(_boxes, _high, _low, _type) =>
+    if array.size(_boxes) > 0
+        for i = array.size(_boxes) - 1 to 0 by 1
+            _box = array.get(_boxes, i)
+            _boxLow = box.get_bottom(_box)
+            _boxHigh = box.get_top(_box)
+            _boxRight = box.get_right(_box)
+            if bosBoxFlag and _type == _bos
+                if na or (bar_index + bosBoxLength - 1 == _boxRight and not((_high > _boxLow and _low < _boxLow) or (_high > _boxHigh and _low < _boxHigh)))
+                    box.set_right(_box, bar_index + bosBoxLength - 1)
+            else
+				if na or (bar_index == _boxRight and not((_high > _boxLow and _low < _boxLow) or (_high > _boxHigh and _low < _boxHigh)))
+					box.set_right(_box, bar_index + 1)
+
+//////////////////// Order Block //////////////////
+//Bullish OB Box Plotting
+if isObUp(1) and plotOB
+    _bullboxOB = box.new(left=bar_index - 2, top=high[2], right=bar_index, bottom=math.min(low[2], low[1]), border_color=color.new(obBullColor,obBorderTransparency), border_style=obBoxBorder, border_width=1, bgcolor=color.new(obBullColor,obTransparency), 
+     text=plotTextOB ? _obLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+    if array.size(_bullBoxesOB) > obMaxBoxSet
+        box.delete(array.shift(_bullBoxesOB))
+    array.push(_bullBoxesOB, _bullboxOB)
+
+//Bearish OB Box Plotting
+if isObDown(1) and plotOB
+    _bearboxOB = box.new(left=bar_index - 2, top=math.max(high[2], high[1]), right=bar_index, bottom=low[2], border_color=color.new(obBearColor,obBorderTransparency), border_style=obBoxBorder, border_width=1, bgcolor=color.new(obBearColor,obTransparency), 
+     text=plotTextOB ? _obLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+    if array.size(_bearBoxesOB) > obMaxBoxSet
+        box.delete(array.shift(_bearBoxesOB))
+    array.push(_bearBoxesOB, _bearboxOB)
+    
+if plotOB
+    _controlBox(_bearBoxesOB, high, low, _ob)
+    _controlBox(_bullBoxesOB, high, low, _ob)
+
+//////////////////// Fair Value Gap //////////////////
+//Bullish FVG Box Plotting
+if isFvgUp(0) and plotFVG
+    _bullboxFVG = box.new(left=bar_index-2, top=low[0], right=bar_index, bottom=high[2], bgcolor=color.new(fvgBullColor, fvgTransparency), border_color=color.new(fvgBullColor, fvgBorderTransparency), border_style=fvgBoxBorder, border_width=1,
+     text=plotTextFVG ? _fvgLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)    
+    if array.size(_bullBoxesFVG) > fvgMaxBoxSet
+        box.delete(array.shift(_bullBoxesFVG))
+    array.push(_bullBoxesFVG, _bullboxFVG)
+
+//Bearish FVG Box Plotting    
+if isFvgDown(0) and plotFVG
+    _bearboxFVG = box.new(left=bar_index-2, top=low[2], right=bar_index, bottom=high[0], bgcolor=color.new(fvgBearColor, fvgTransparency), border_color=color.new(fvgBearColor, fvgBorderTransparency), border_style=fvgBoxBorder, border_width=1,
+     text=plotTextFVG ? _fvgLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)    
+    if array.size(_bearBoxesFVG) > fvgMaxBoxSet
+        box.delete(array.shift(_bearBoxesFVG))
+    array.push(_bearBoxesFVG, _bearboxFVG)
+    
+if plotFVG
+    _controlBox(_bearBoxesFVG, high, low, _fvg)
+    _controlBox(_bullBoxesFVG, high, low, _fvg)
+
+//////////////////// Rejection Block //////////////////
+if plotRJB
+    isDownRjbObCondition = isObDown(1)
+    isDownRjb1 = isDownRjbObCondition and  (high[1] < (close[2] + 0.2*(high[2]-close[2]))) // RJB is on trapped's wick and <50% of the wick was covered by signal
+    isDownRjb2 = isDownRjbObCondition and (high[1] > high[2]) // RJB is on signal's wick
+    if isDownRjb1 and plotRJB
+        _bearboxRJB = box.new(left=bar_index-2, top=high[2], right=bar_index, bottom=close[2], bgcolor=color.new(rjbBearColor, rjbTransparency), border_color=color.new(rjbBearColor, rjbBorderTransparency), border_style=rjbBoxBorder, border_width=1,
+         text=plotTextRJB ? _rjbLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bearBoxesRJB) > rjbMaxBoxSet
+            box.delete(array.shift(_bearBoxesRJB))
+        array.push(_bearBoxesRJB, _bearboxRJB)
+        
+    if isDownRjb2 and plotRJB
+        _bearboxRJB = box.new(left=bar_index-1, top=high[1], right=bar_index, bottom=open[1], bgcolor=color.new(rjbBearColor, rjbTransparency), border_color=color.new(rjbBearColor, rjbBorderTransparency), border_style=rjbBoxBorder, border_width=1,
+         text=plotTextRJB ? _rjbLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bearBoxesRJB) > rjbMaxBoxSet
+            box.delete(array.shift(_bearBoxesRJB))
+        array.push(_bearBoxesRJB, _bearboxRJB)
+
+//Bullish RJB Box Plotting
+if plotRJB
+    isUpRjbObCondition = isObUp(1)
+    isUpRjb1 = isUpRjbObCondition and (low[1] > (close[2] - 0.2*(close[2]-low[2]))) // RJB is on trapped's wick and <50% of the wick was covered by signal
+    isUpRjb2 = isUpRjbObCondition and (low[1] < low[2]) // RJB is on signal's wick
+    if isUpRjb1 and plotRJB
+        _bullboxRJB = box.new(left=bar_index-2, top=close[2], right=bar_index, bottom=low[2], bgcolor=color.new(rjbBullColor, rjbTransparency), border_color=color.new(rjbBullColor, rjbBorderTransparency), border_style=rjbBoxBorder, border_width=1,
+         text=plotTextRJB ? _rjbLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bullBoxesRJB) > rjbMaxBoxSet
+            box.delete(array.shift(_bullBoxesRJB))
+        array.push(_bullBoxesRJB, _bullboxRJB)
+    
+    if isUpRjb2 and plotRJB
+        _bullboxRJB = box.new(left=bar_index-1, top=open[1], right=bar_index, bottom=low[1], bgcolor=color.new(rjbBullColor, rjbTransparency), border_color=color.new(rjbBullColor, rjbBorderTransparency), border_style=rjbBoxBorder, border_width=1, 
+         text=plotTextRJB ? _rjbLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bullBoxesRJB) > rjbMaxBoxSet
+            box.delete(array.shift(_bullBoxesRJB))
+        array.push(_bullBoxesRJB, _bullboxRJB)
+
+if plotRJB
+    _controlBox(_bearBoxesRJB, high, low, _rjb)
+    _controlBox(_bullBoxesRJB, high, low, _rjb)
+
+//////////////////// Pivots //////////////////// 
+hih = ta.pivothigh(high, pivotLookup, pivotLookup)
+lol = ta.pivotlow(low , pivotLookup, pivotLookup)
+top = ta.valuewhen(hih, high[pivotLookup], 0)
+bottom = ta.valuewhen(lol, low [pivotLookup], 0)
+plot(top, offset=-pivotLookup, linewidth=1, color=(top != top[1] ? na : (plotPVT ? color.silver : na)), title="Pivot Top")
+plot(bottom, offset=-pivotLookup, linewidth=1, color=(bottom != bottom[1] ? na : (plotPVT ? color.silver : na)), title="Pivot Bottom")
+
+//////////////////// Crossovers a.k.a. Break of Structure ////////////////////
+//Bullish BOS Box Plotting
+if plotBOS
+    if ta.crossover(close, top)
+        _bullboxBOS = box.new(left=bar_index, top=top, right=bosBoxFlag ? bar_index+bosBoxLength : bar_index+1, bottom=bottom, bgcolor=color.new(bosBullColor, bosTransparency), border_color=color.new(bosBullColor, bosBorderTransparency), border_style=bosBoxBorder, border_width=1, 
+         text=plotTextBOS ? _bosLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bullBoxesBOS) > bosMaxBoxSet
+            box.delete(array.shift(_bullBoxesBOS))
+        array.push(_bullBoxesBOS, _bullboxBOS)    
+
+//Bearish BOS Box Plotting        
+if plotBOS 
+    if ta.crossunder(close, bottom)
+        _bearboxBOS = box.new(left=bar_index, top=top, right=bosBoxFlag ? bar_index+bosBoxLength : bar_index+1, bottom=bottom, bgcolor=color.new(bosBearColor, bosTransparency), border_color=color.new(bosBearColor, bosBorderTransparency), border_style=bosBoxBorder, border_width=1, 
+         text=plotTextBOS ? _bosLabel : _empty, text_halign=text.align_right, text_valign=text.align_bottom, text_size=size.tiny, text_color=color.gray)
+        if array.size(_bearBoxesBOS) > bosMaxBoxSet
+            box.delete(array.shift(_bearBoxesBOS))
+        array.push(_bearBoxesBOS, _bearboxBOS)
+
+if plotBOS
+    _controlBox(_bearBoxesBOS, high, low, _bos)
+    _controlBox(_bullBoxesBOS, high, low, _bos)
+
+//////////////////// Premium Premium & Discount Discount //////////////////
+premiumPremium = plotPPDD and isObDown(0) and ((math.max(high, high[1]) > top and close < top) or (math.max(high, high[1]) > top[1] and close < top[1]))
+discountDiscount = plotPPDD and isObUp(0) and ((math.min(low, low[1]) < bottom and close > bottom) or (math.min(low, low[1]) < bottom[1] and close > bottom[1]))
+plotshape(premiumPremium, "Premium Premium", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(discountDiscount, "Discount Discount", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+
+premiumPremium1 = plotPPDD and (isUp(1) and isDown(0) and close[0] < open[1]) and ((math.max(high, high[1]) > top and close < top) or (math.max(high, high[1]) > top[1] and close < top[1])) and not premiumPremium
+discountDiscount1 = plotPPDD and (isDown(1) and isUp(0) and close[0] > open[1]) and ((math.min(low, low[1]) < bottom and close > bottom) or (math.min(low, low[1]) < bottom[1] and close > bottom[1])) and not discountDiscount
+plotshape(premiumPremium1, "Premium Premium 1", style=shape.xcross, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(discountDiscount1, "Discount Discount 1", style=shape.xcross, location=location.belowbar, color=color.green, size=size.tiny)
+
+////////////////// High Volume Bars //////////////////
+volEma = ta.ema(volume, hvbEMAPeriod)
+isHighVolume = volume > (hvbMultiplier * volEma)
+barcolor(plotHVB and isUp(0) and isHighVolume ? hvbBullColor : na, title="Bullish HVB")
+barcolor(plotHVB and isDown(0) and isHighVolume ? hvbBearColor : na, title="Bearish HVB")
+
