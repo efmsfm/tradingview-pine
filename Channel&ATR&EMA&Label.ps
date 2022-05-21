@@ -2,50 +2,50 @@
 // © liruizhao54
 
 //@version=5
-indicator(title="[RS]通道指标", shorttitle="Channel indicators", overlay=true)
+indicator(title="[rusice]Channel/EMA/Tips", shorttitle="Channel/Tips", overlay=true)
 // *****************************************************************************
 // | Basic
 // *****************************************************************************
-length                      =               input.int(title="Length", defval=20, minval=1)
 showATRChannel              =               input.bool(title="显示ATR通道", defval=false)
 showBLChannel               =               input.bool(title="显示布林带通道", defval=false)
-ema_short_length            =               input.int(title="短周期EMA长度", defval=21)
-ema_middle_length           =               input.int(title="中周期EMA长度", defval=50)
-ema_long_length             =               input.int(title="中周期EMA长度", defval=200)
 atr_length                  =               input.int(title="ATR周期长度", defval=19)
-// DISTANCE SETTING | CALCULATE DISTANCE BETWEEN PLOT AND LABEL THEN REPRINT AT EVERY TICK
 distance                    = input(3, "Label Distance")
 r1_x                        = time + math.round(ta.change(time) * distance)
 
 // *****************************************************************************
+// | 在指标旁边显示Label的方法
+// | label_txt<String> 文本
+// | label_y<Plot> 坐标点（Y）
+// *****************************************************************************
+disLabel(label_txt, label_y) =>
+    emalabel = label.new(x=r1_x, y=label_y, text=label_txt, xloc=xloc.bar_time, yloc=yloc.price, style=label.style_none, textcolor=color.black, size=size.small)
+    label.delete(emalabel[1])
+
+// *****************************************************************************
 // | EMA均线
 // *****************************************************************************
-ema_short                   =               ta.ema(close, ema_short_length)
-ema_middle                  =               ta.ema(close, ema_middle_length)
+ema_short                   =               ta.ema(close, 20)
+ema_middle                  =               ta.ema(close, 50)
 ema_100                     =               ta.ema(close, 100)
-ema_long                    =               ta.ema(close, ema_long_length)
-ema_short_plot              =               plot(ema_short, color=color.purple, title="短周期EMA", linewidth=2)
+ema_long                    =               ta.ema(close, 200)
+ema_short_plot              =               plot(ema_short, color=color.black, title="短周期EM", linewidth=1)
 plot(ema_middle, color=color.black, title="EMA50", linewidth=1)
 plot(ema_100, color=color.black, title="EMA100", linewidth=2)
 plot(ema_long, color=color.black, title="EMA200", linewidth=3)
 
-disEMALabel(label_txt, label_y) =>
-    emalabel = label.new(x=r1_x, y=label_y, text=label_txt, xloc=xloc.bar_time, yloc=yloc.price, style=label.style_none, textcolor=color.black, size=size.tiny)
-    label.delete(emalabel[1])
-
-disEMALabel("EMA 20", ema_short)
-disEMALabel("EMA 50", ema_middle)
-disEMALabel("EMA 100", ema_100)
-disEMALabel("EMA 200", ema_long)
+disLabel("EMA 20", ema_short)
+disLabel("EMA 50", ema_middle)
+disLabel("EMA 100", ema_100)
+disLabel("EMA 200", ema_long)
 
 // *****************************************************************************
-// | ATR部分
+// | ATR
 // *****************************************************************************		
 atr                         =               ta.atr(atr_length)
 timeATR                     =               atr * 2
 
 // *****************************************************************************
-// | 凯特勒通道(基于ATR实现)
+// | 凯特勒通道
 // *****************************************************************************
 c_up                        =               ema_short + timeATR
 c_down                      =               ema_short - timeATR
@@ -57,10 +57,30 @@ fill(atr_uper, atr_dner, title="凯特勒通道", color= showATRChannel ? color.
 // | 布林带
 // *****************************************************************************
 long_boll_mult              =               input.float(title="布林带偏差", defval=2)
-boll_mid                    =               ta.sma(close, ema_short_length)
-long_dev                    =               long_boll_mult * ta.stdev(close, length)
+boll_mid                    =               ta.sma(close, 20)
+long_dev                    =               long_boll_mult * ta.stdev(close, 20)
 l_upper                     =               boll_mid + long_dev
 l_lower                     =               boll_mid - long_dev
 l_b_p1                      =               plot(l_upper, "BL Upper", color=showBLChannel ? color.new(color.black, transp = 50) : na, linewidth= showBLChannel ? 1 : na)
 l_b_p2                      =               plot(l_lower, "BL Lower", color=showBLChannel ? color.new(color.black, transp = 50) : na, linewidth= showBLChannel ? 1 : na)
 fill(l_b_p1, l_b_p2, title="BL通道", color=showBLChannel ? color.new(color.gray, transp = 90) : na)
+
+// *****************************************************************************
+// | 右上角提示文字
+// *****************************************************************************
+tips = array.new<string>()
+array.push(tips, "================开单顺序================")
+array.push(tips, "1.吃掉【流动性】并突破")
+array.push(tips, "2.【形状转变】找入场")
+array.push(tips, "3.【不平衡区域】找出场")
+array.push(tips, "================叠BUFF==================")
+array.push(tips, "K线：长影、吞没、头肩底/顶")
+array.push(tips, "形态：持续、反转、均线")
+array.push(tips, "信号：背离")
+array.push(tips, "1/4小时看方向，15分钟找流动性，2-5分钟找入场")
+// *如果还需要添加，则复制上一行，改变中文部分文字即可
+
+var testTable = table.new(position = position.top_right, columns = 1, rows = array.size(tips), bgcolor = #fefdce)
+for [tip_index, tip] in tips
+    table.cell(table_id = testTable, column = 0, row = tip_index, text = tip, text_size = size.small )
+    
